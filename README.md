@@ -1,6 +1,6 @@
-# rake fun
+# Useful foreman-rake scripts
 
-Fun with rake tasks. This is a personal project where I'm studying nice and fun ways to build new or improve upon existing foreman-rake tasks.
+Useful foreman-rake tasks. This is a personal project where I'm studying nice and fun ways to build new or improve upon existing foreman-rake tasks.
 
 ## How to use these rake scripts
 
