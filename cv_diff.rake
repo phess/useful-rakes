@@ -18,86 +18,62 @@ namespace :katello do
         If only VERSION1 is given, the latest version of CONTENT_VIEW will be compared against VERSION1.
 
   DESC
-  ## phess on 2020-10-19: everything below this is just a copy of sync_capules_selective.rake and needs to be actually written.
-  #
-  #### This works:
-  #
-  # cvv1 = Katello::ContentView.find( ID_OF_CVV_1 )  <=== grab this ID with hammer
-  # cvv2 = Katello::ContentView.find( ID_OF_CVV_2 )  <=== grab this ID with hammer
-  #
-  # pkgs1 = cvv1.packages.pluck(:filename)
-  # pkgs2 = cvv2.packages.pluck(:filename)
-  #
-  # Filenames in pkgs2 that are not in pkgs1:
-  # pkgs2.each {|pkg| puts pkg unless pkgs1.includes?(pkg) }
-  #
-  #  BOOM. :-)
-  #
-  #
-  #
-  #
-  #
   task :cv_diff => ["environment", "check_ping"] do
-    capsule_id = ENV['CAPSULE_ID']
-    env = ENV['LIFECYCLE_ENVIRONMENT']
-    content_view = ENV['CONTENT_VIEW']
-    repository = ENV['REPOSITORY']
+    cv_id = ENV['CONTENT_VIEW']
+    versions = ENV['VERSIONS']
     verbose = ENV['VERBOSE']
     User.current = User.anonymous_api_admin
 
-    if capsule_id
-      capsule = SmartProxy.find(capsule_id)
-      puts "Syncing individual repos to capsule #{capsule.name}" if verbose == "true"
-    else
-      puts "ERROR: no CAPSULE_ID given. I need a CAPSULE_ID. Run ``rake -D katello:sync_capsule_selective'' to read about required and optional variables."
-      exit 3
-    end
-    
-    options = {}
-    if env
-      # Look up by name first, then by ID if name doesn't work
-      lce = Katello::KTEnvironment.find_by(:name => env)
-      unless lce
-        lce = Katello::KTEnvironment.find(env.to_i)
-      end
-      options[:environment_id] = lce.id
+    cv = Katello::ContentView.find(cv_id)
+    cv_versions = versions.split(',', 2)
+    cv1 = cv.versions.find(cv_versions.first.to_i)
+    cv2 = cv.versions.find(cv_versions.last.to_i)
+    $allcvs = [ cv1, cv2 ]
+
+    def cvmajmin(cvversion)
+      return "#{cvversion.major}.#{cvversion.minor}"
     end
 
-    if content_view
-      # Look up by name first, then label, then ID
-      cv = Katello::ContentView.find_by(:name => content_view)
-      unless cv
-        cv = Katello::ContentView.find_by(:label => content_view)
-        unless cv
-          cv = Katello::ContentView.find(content_view.to_i)
-        end
-      end
-      options[:content_view_id] = cv.id
+    def cvname(cvversion)
+      return cvversion.content_view.name
     end
 
-    if repository
-      # Look up by numeric ID (Katello) then by pulp_id (UUID)
-      repo = Katello::Repository.find(repository.to_i)
-      unless repo
-        repo = Katello::Repository.find_by(:pulp_id => repository)
-      end
-      options[:repository_id] = repo.id
+    def cvvname(cvversion)
+      return cvname(cvversion) + ":" + cvmajmin(cvversion)
     end
 
-    if verbose == "true"
-      puts "Will now sync capsule #{capsule.name} with these parameters:"
-      puts "  capsule.......: #{capsule}"
-      puts "  environment...: #{lce}"
-      puts "  content_view..: #{cv}"
-      puts "  repository....: #{repo}"
-      puts " **********"
-      puts " ** NOTE ** If the given environment or content_view or repository is not assigned to this capsule,"
-      puts " **      ** then nothing will be synced to this capsule."
-      puts " **      **"
-      puts " **      ** The same applies in case e.g. the chosen Content View is not published to the chosen"
-      puts " **      ** Lifecycle Environment."
-      puts " **********"
+    def cvpkgs(cvversion)
+      return cvversion.packages
     end
-    task = ForemanTasks.async_task(::Actions::Katello::CapsuleContent::Sync, capsule, options)
-  end
+
+    def othercv(cvversion)
+      # Find who the "other" CV is
+      othercv = ($allcvs - [ cvversion ]).first
+      return othercv
+    end
+
+    def cvexclusivepkgs(cvversion)
+      theother = othercv(cvversion)
+      return cvversion.packages - theother.packages
+    end
+
+    puts "Diffing Content View '#{cv.name}' versions #{cvmajmin(cv1)} and #{cvmajmin(cv2)}"
+    puts "Package counts are #{cvpkgs(cv1).count} and #{cvpkgs(cv2).count}."
+
+    puts ""
+    [ cv1, cv2 ].each do
+      |onecv|
+      puts "#{cvvname(onecv)} has #{cvexclusivepkgs(onecv).count} exclusive packages that the other Content View Version does not."
+    end
+
+    puts ""
+    [ cv1, cv2 ].each do
+      |onecv|
+      puts "List of packages exclusive to #{cvvname(onecv)}:"
+      cvexclusivepkgs(onecv).each_with_index do |pkg, idx|
+        puts "#{idx+1}:\t#{pkg.nvra}"
+      end
+      puts "------"
+    end
+  end   
 end
