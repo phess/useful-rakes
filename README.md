@@ -63,10 +63,12 @@ rake katello:sync_capsule_selective
         * LIFECYCLE_ENVIRONMENT : name or numeric ID of the Lifecycle Environment to sync
         * CONTENT_VIEW          : name or label or numeric ID of the Content View to sync
         * REPOSITORY            : numeric ID or pulp id of the repository to sync
+        * ASYNC                 : if true(default), the rake command will trigger a sync task and exit.
+                                  if false, the rake command will only exit when the triggered task completes.
         * VERBOSE               : be verbose (true or false[default])
     
       Examples:
-        * rake katello:sync_capsule_selective CAPSULE_ID=1 LIFECYCLE_ENVIRONMENT=2 CONTENT_VIEW=3 REPOSITORY=5
+        * rake katello:sync_capsule_selective CAPSULE_ID=1 LIFECYCLE_ENVIRONMENT=2 CONTENT_VIEW=3 REPOSITORY=5 ASYNC=false
         * rake katello:sync_capsule_selective CAPSULE_ID=8 LIFECYCLE_ENVIRONMENT=someLCE CONTENT_VIEW="My Cool CV"
     
       NOTE:
@@ -74,4 +76,5 @@ rake katello:sync_capsule_selective
           target Capsule then nothing will be synchronized to the target Capsule.
         If you select a CONTENT_VIEW and LIFECYCLE_ENVIRONMENT, but the former is not in the latter, then nothing
           will be synchronized to the target Capsule.
+
 ~~~
