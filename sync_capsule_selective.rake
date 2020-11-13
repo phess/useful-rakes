@@ -9,10 +9,12 @@ namespace :katello do
         * LIFECYCLE_ENVIRONMENT : name or numeric ID of the Lifecycle Environment to sync
         * CONTENT_VIEW          : name or label or numeric ID of the Content View to sync
         * REPOSITORY            : numeric ID or pulp id of the repository to sync
+        * ASYNC                 : if true(default), the rake command will trigger a sync task and exit.
+                                  if false, the rake command will only exit when the triggered task completes.
         * VERBOSE               : be verbose (true or false[default])
 
       Examples:
-        * rake katello:sync_capsule_selective CAPSULE_ID=1 LIFECYCLE_ENVIRONMENT=2 CONTENT_VIEW=3 REPOSITORY=5
+        * rake katello:sync_capsule_selective CAPSULE_ID=1 LIFECYCLE_ENVIRONMENT=2 CONTENT_VIEW=3 REPOSITORY=5 ASYNC=false
         * rake katello:sync_capsule_selective CAPSULE_ID=8 LIFECYCLE_ENVIRONMENT=someLCE CONTENT_VIEW="My Cool CV"
 
       NOTE:
@@ -27,6 +29,7 @@ namespace :katello do
     content_view = ENV['CONTENT_VIEW']
     repository = ENV['REPOSITORY']
     force = ENV['FORCE']
+    async = ENV['ASYNC']
     verbose = ENV['VERBOSE']
     User.current = User.anonymous_api_admin
 
@@ -73,6 +76,8 @@ namespace :katello do
       options[:repository_id] = repo.id
     end
 
+    trigger_async = async == "true"
+
     if verbose == "true"
       puts "Will now sync capsule #{capsule.name} with these parameters:"
       puts "  capsule.......: #{capsule}"
@@ -87,6 +92,12 @@ namespace :katello do
       puts " **      ** Lifecycle Environment."
       puts " **********"
     end
-    task = ForemanTasks.async_task(::Actions::Katello::CapsuleContent::Sync, capsule, options)
+    if trigger_async
+      task = ForemanTasks.async_task(::Actions::Katello::CapsuleContent::Sync, capsule, options)
+      puts "Capsule Sync task started with id = #{task.id}. Point your browser to the URL below to view this task."
+      puts "\n    https://_SATELLITE_/foreman_tasks/tasks/#{task.id}"
+    else
+      task = ForemanTasks.sync_task(::Actions::Katello::CapsuleContent::Sync, capsule, options)
+    end
   end
 end
