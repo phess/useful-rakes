@@ -32,7 +32,8 @@ namespace :katello do
 
         Global paramenter:
 
-        * VERBOSE               : Print verbose information.
+        * VERBOSE               : true/false Print verbose information.
+        * PER_REPO              : true/false Operate on repositories instead of packages.
 
       Examples:
         * rake katello:cv_diff LEFT="This nice CV:15.0"
@@ -52,9 +53,11 @@ namespace :katello do
     left_cv_spec = ENV['LEFT']
     right_cv_spec = ENV['RIGHT']
     verbose = ENV['VERBOSE']
+    per_repo = ENV['PER_REPO']
     User.current = User.anonymous_api_admin
 
     is_verbose = verbose == "true"
+    repos_only = per_repo == "true"
 
     left_name_and_version = left_cv_spec.split(':')
     if left_name_and_version.count == 2
@@ -146,7 +149,8 @@ namespace :katello do
       "parentname" => left_cvv.content_view.name,
       "version" => "#{left_cvv.major}.#{left_cvv.minor}",
       "displayname" => left_cvv.content_view.name + ":" + "#{left_cvv.major}.#{left_cvv.minor}",
-      "cvpkgs" => left_cvv.packages.sort
+      "cvpkgs" => left_cvv.packages.sort,
+      "cvrepos" => left_cvv.repositories
     }
     cv2 = {
       "obj" => right_cvv,
@@ -154,6 +158,7 @@ namespace :katello do
       "version" => "#{right_cvv.major}.#{right_cvv.minor}",
       "displayname" => right_cvv.content_view.name + ":" + "#{right_cvv.major}.#{right_cvv.minor}",
       "cvpkgs" => right_cvv.packages.sort,
+      "cvrepos" => right_cvv.repositories,
       "othercv" => cv1
     }
     cv1["othercv"] = cv2
@@ -167,6 +172,13 @@ namespace :katello do
       return cvversion["exclusivepkgs"]
     end
 
+    def cvexclusiverepos(cvversion)
+      return cvversion["exclusiverepos"] if cvversion["exclusiverepos"]
+      theother = cvversion["othercv"]
+      cvversion["exclusiverepos"] = cvversion["cvrepos"] - theother["cvrepos"]
+      return cvversion["exclusiverepos"]
+    end
+
     puts "Diffing Content Views\n\t'#{cv1["parentname"]}' version #{cv1["version"]} (#{cv1["cvpkgs"].count} pkgs)\n\tto\n\t'#{cv2["parentname"]}' version #{cv2["version"]} (#{cv2["cvpkgs"].count} pkgs)"
 
     puts ""
@@ -178,12 +190,21 @@ namespace :katello do
     puts ""
     $allcvs.each do
       |onecv|
-      puts "List of packages exclusive to #{onecv["displayname"]}:"
-      cvexclusivepkgs(onecv).pluck(:nvra).sort.each_with_index do
-        |nvra, idx|
-        puts "#{idx+1}:\t#{nvra}"
+      if repos_only
+        puts "List of repositories exclusive to #{onecv["displayname"]}:"
+        cvexclusiverepos(onecv).sort.each_with_index do
+          |repo, idx|
+          puts "#{idx+1}:\t#{repo.pulp_id} (#{repo.rpms.count} RPMs)"
+        end
+        puts "------"
+      else
+        puts "List of packages exclusive to #{onecv["displayname"]}:"
+        cvexclusivepkgs(onecv).pluck(:nvra).sort.each_with_index do
+          |nvra, idx|
+          puts "#{idx+1}:\t#{nvra}"
+        end
+        puts "------"
       end
-      puts "------"
     end
   end   
 end
