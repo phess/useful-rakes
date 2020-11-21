@@ -75,3 +75,73 @@ rake katello:sync_capsule_selective
         If you select a CONTENT_VIEW and LIFECYCLE_ENVIRONMENT, but the former is not in the latter, then nothing
           will be synchronized to the target Capsule.
 ~~~
+
+### cv_diff.rake
+Calculate content differences between two given Content View versions. The script can currently compare RPM, Repositories, or Errata.
+
+
+#### Usage
+~~~
+# foreman-rake katello:cv_diff LEFT="RHEL 7 frontend:21.0" RIGHT=18.0 WHAT=errata
+# foreman-rake katello:cv_diff LEFT="RHEL 7 frontend" 
+# foreman-rake katello:cv_diff LEFT="RHEL 7 frontend" RIGHT=some_ccv:8.0 WHAT=repo
+~~~
+
+The `LEFT` and `RIGHT` parameters can be either a CV name or label or numeric ID, optionally followed by `:x.y` representing *major.minor* version.
+If version numbers are omitted, latest CV version is used.
+If `RIGHT` is only a version number, the same CV from LEFT will be used.
+If `RIGHT` is omitted altogether, the same CV from LEFT will be used and in its latest version.
+
+#### More information
+~~~
+# foreman-rake -D katello:cv_diff
+rake katello:cv_diff
+    Calculates and shows the difference (in terms of package contents) between two versions of the same Content View.
+    
+      Parameters:
+    
+          * LEFT=CV:version  : Content View and version identifiers.
+                             : CV can be either a name or label or numerical ID of a Content View.
+                             : Omitting the version is the same as specifying the latest version of this Content View.
+                             : Version is specified as major.minor. See examples below.
+                             : Examples:
+                             :   LEFT="This nice CV"  -- latest version of a Content View named "This nice CV"
+                             :   LEFT="this_nice_cv"  -- latest version of a Content View named or labeled "this_nice_cv"
+                             :   LEFT="This nice CV:15.0"  -- version 15.0 of "This nice CV"
+                             :   LEFT="this_nice_cv:15.0"  -- version 15.0 of "this_nice_cv"
+                             :   LEFT="45"       -- latest version of Content View ID 45
+                             :   LEFT="45:15.0"  -- version 15.0 of Content View ID 45
+    
+          * RIGHT=CV:version  : Content View and version identifiers.
+                              : Same conditions as LEFT, with a single exception:
+                              :   RIGHT=version (i.e. omitting the CV) will consider it to be the same Content View as LEFT.
+                              :   Omitting the RIGHT argument altogether will consider this to be the second-latest version of LEFT.
+                              : Examples:
+                              :   RIGHT="Other nice CV"  -- will compare LEFT to the latest version of "Other nice CV"
+                              :   RIGHT="other_nice_cv"  -- will compare LEFT to the latest version of "other_nice_cv"
+                              :   RIGHT="Other nice CV:31.0"  -- will compare LEFT to version 31.0 of "Other nice CV"
+                              :   RIGHT="other_nice_cv:31.0"  -- will compare LEFT to version 31.0 of "other_nice_cv"
+                              :   RIGHT="67"  -- will compare LEFT to the latest version of Content View ID 67
+                              :   RIGHT="45:31.0"  -- will compare LEFT to version 31.0 of Content View ID 67
+                              :   <RIGHT is omitted>  -- will compare LEFT to the second-latest version of LEFT
+    
+    
+        Global paramenter:
+    
+        * VERBOSE               : true/false Print verbose information.
+        * WHAT                  : What to diff. Value is one of [ rpm, repo, errata ]
+    
+      Examples:
+        * rake katello:cv_diff LEFT="This nice CV:15.0"
+            (will diff version 15.0 and the latest version of "This nice CV")
+    
+        * rake katello:cv_diff LEFT="this_nice_cv" RIGHT="Other CV"
+            (will diff the latest version of "this_nice_cv" to the latest version of "Other CV".)
+    
+        * rake katello:cv_diff LEFT=14
+            (will diff the two latest versions of CV ID 14.)
+    
+        * rake katello:cv_diff LEFT="some cv:3.2" RIGHT="another cv:5.1"
+            (will diff version 3.2 of "some cv" to version 5.1 of "another cv")
+~~~
+

@@ -33,7 +33,7 @@ namespace :katello do
         Global paramenter:
 
         * VERBOSE               : true/false Print verbose information.
-        * PER_REPO              : true/false Operate on repositories instead of packages.
+        * WHAT                  : What to diff. Value is one of [ rpm, repo, errata ]
 
       Examples:
         * rake katello:cv_diff LEFT="This nice CV:15.0"
@@ -53,11 +53,21 @@ namespace :katello do
     left_cv_spec = ENV['LEFT']
     right_cv_spec = ENV['RIGHT']
     verbose = ENV['VERBOSE']
-    per_repo = ENV['PER_REPO']
+    base_object = ENV['WHAT']
     User.current = User.anonymous_api_admin
 
     is_verbose = verbose == "true"
-    repos_only = per_repo == "true"
+    SUPPORTED_OBJECTS = [ "rpm", "repo", "errata"]
+    DEFAULT_OBJECT = "rpm"
+    unless SUPPORTED_OBJECTS.include? base_object
+      puts "WHAT=#{base_object} is not supported."
+      puts "Supported objects are #{SUPPORTED_OBJECTS}."
+      exit 1
+    end
+
+    unless base_object
+      base_object = DEFAULT_OBJECT
+    end
 
     left_name_and_version = left_cv_spec.split(':')
     if left_name_and_version.count == 2
@@ -141,6 +151,10 @@ namespace :katello do
         # Find major and minor for RIGHT CVV
         right_version_major, right_version_minor = right_version.split('.')
         right_cvv = right_cv.versions.find_by(:major => right_version_major, :minor => right_version_minor)
+        unless right_cvv
+          puts "** ERROR ** No Content View found matching RIGHT spec: #{right_cv.name} version #{right_version_major}.#{right_version_minor}. Aborting."
+          exit 2
+        end
       end
     end
 
@@ -150,7 +164,8 @@ namespace :katello do
       "version" => "#{left_cvv.major}.#{left_cvv.minor}",
       "displayname" => left_cvv.content_view.name + ":" + "#{left_cvv.major}.#{left_cvv.minor}",
       "cvpkgs" => left_cvv.packages.sort,
-      "cvrepos" => left_cvv.repositories
+      "cvrepos" => left_cvv.repositories,
+      "cverrata" => left_cvv.errata
     }
     cv2 = {
       "obj" => right_cvv,
@@ -159,6 +174,7 @@ namespace :katello do
       "displayname" => right_cvv.content_view.name + ":" + "#{right_cvv.major}.#{right_cvv.minor}",
       "cvpkgs" => right_cvv.packages.sort,
       "cvrepos" => right_cvv.repositories,
+      "cverrata" => right_cvv.errata,
       "othercv" => cv1
     }
     cv1["othercv"] = cv2
@@ -179,31 +195,47 @@ namespace :katello do
       return cvversion["exclusiverepos"]
     end
 
+    def cvexclusiveerrata(cvversion)
+      return cvversion["exclusiveerrata"] if cvversion["exclusiveerrata"]
+      theother = cvversion["othercv"]
+      cvversion["exclusiveerrata"] = cvversion["cverrata"] - theother["cverrata"]
+      return cvversion["exclusiveerrata"]
+    end
+
     puts "Diffing Content Views\n\t'#{cv1["parentname"]}' version #{cv1["version"]} (#{cv1["cvpkgs"].count} pkgs)\n\tto\n\t'#{cv2["parentname"]}' version #{cv2["version"]} (#{cv2["cvpkgs"].count} pkgs)"
 
     puts ""
     $allcvs.each do
       |onecv|
-      puts "#{onecv["displayname"]} has #{cvexclusivepkgs(onecv).count} exclusive packages that the #{onecv["othercv"]["displayname"]} does not."
+      puts "    Content only #{onecv["displayname"]} has:"
+      puts "       RPMs:   #{cvexclusivepkgs(onecv).count}"
+      puts "       Repos:  #{cvexclusiverepos(onecv).count}"
+      puts "       Errata: #{cvexclusiveerrata(onecv).count}"
+      puts "    --"
     end
 
     puts ""
     $allcvs.each do
       |onecv|
-      if repos_only
-        puts "List of repositories exclusive to #{onecv["displayname"]}:"
+      puts "List of #{base_object}s exclusive to #{onecv["displayname"]}:"
+      if base_object == "repo"
         cvexclusiverepos(onecv).sort.each_with_index do
           |repo, idx|
           puts "#{idx+1}:\t#{repo.pulp_id} (#{repo.rpms.count} RPMs)"
         end
         puts "------"
-      else
-        puts "List of packages exclusive to #{onecv["displayname"]}:"
+      elsif base_object == "rpm"
         cvexclusivepkgs(onecv).pluck(:nvra).sort.each_with_index do
           |nvra, idx|
           puts "#{idx+1}:\t#{nvra}"
         end
         puts "------"
+      elsif base_object == "errata"
+        puts "    \tErrata ID | RPM count | Issue date | Update date"
+        cvexclusiveerrata(onecv).sort_by {|e| [e.updated, e.issued, e.errata_id]}.each_with_index do
+          |errata, idx|
+          puts "#{idx+1}:\t#{errata.errata_id} | #{errata.issued} | #{errata.updated} | #{errata.packages.count}"
+        end
       end
     end
   end   
