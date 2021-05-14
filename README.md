@@ -75,3 +75,29 @@ rake katello:sync_capsule_selective
         If you select a CONTENT_VIEW and LIFECYCLE_ENVIRONMENT, but the former is not in the latter, then nothing
           will be synchronized to the target Capsule.
 ~~~
+
+
+
+
+### interfaces:find_appropriate_subnet.rake
+This rake script automatically assigns a subnet to any NICs that are not assigned any subnet.
+
+### WARNING
+This is strongly a WIP! You have been warned.
+
+#### Usage
+~~~
+# foreman-rake interfaces:find_appropriate_subnet
+~~~
+
+No parameters are accepted at this moment.
+
+#### More information
+~~~
+# foreman-rake -D find_appropriate_subnet
+rake interfaces:find_appropriate_subnet
+    Automatically adds host NICs to matching subnets.
+    
+    Examples:
+      # foreman-rake interfaces:auto_add_subnet
+~~~
