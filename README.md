@@ -99,5 +99,5 @@ rake interfaces:find_appropriate_subnet
     Automatically adds host NICs to matching subnets.
     
     Examples:
-      # foreman-rake interfaces:auto_add_subnet
+      # foreman-rake interfaces:find_appropriate_subnet
 ~~~
