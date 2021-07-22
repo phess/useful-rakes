@@ -11,7 +11,7 @@ namespace :katello do
 	* CONTENT_VIEW          : name or label or numeric ID of the Content View to sync
 	* REPOSITORY            : numeric ID or pulp id of the repository to sync
 	* VERBOSE               : be verbose (true or false[default])
-        * OPTIMIZED             : perform an optimized sync (true[default] or false)
+	* OPTIMIZED             : perform an optimized sync (true[default] or false)
 
       Examples:
 	* rake katello:sync_capsule_selective CAPSULE_ID=1 LIFECYCLE_ENVIRONMENT=2 CONTENT_VIEW=3 REPOSITORY=5
