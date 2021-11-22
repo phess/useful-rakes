@@ -1,5 +1,6 @@
 namespace :katello do
-  desc <<-DESC.strip_heredoc
+  #desc <<-DESC.strip_heredoc
+  desc <<-DESC
     Calculates and shows the difference (in terms of package contents) between two versions of the same Content View.
 
       Parameters:
@@ -33,7 +34,7 @@ namespace :katello do
         Global paramenter:
 
         * VERBOSE               : true/false Print verbose information.
-        * WHAT                  : What to diff. Value is one of [ rpm, repo, errata ]
+        * WHAT                  : What to diff. Value is one of [ rpm(default), repo, errata ]
 
       Examples:
         * rake katello:cv_diff LEFT="This nice CV:15.0"
@@ -53,7 +54,7 @@ namespace :katello do
     left_cv_spec = ENV['LEFT']
     right_cv_spec = ENV['RIGHT']
     verbose = ENV['VERBOSE']
-    base_object = ENV['WHAT']
+    base_object = ENV['WHAT'] ||= "rpm"
     User.current = User.anonymous_api_admin
 
     is_verbose = verbose == "true"
