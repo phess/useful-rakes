@@ -1,14 +1,19 @@
 namespace :hosts do
   desc <<~END_DESC
     Finds hosts without an installation medium and tries to auto-assign
-    the most appropriate one based on Operating System.
+    the most appropriate one based on the host Operating System.
+
+    Arguments:
+       HOST_ID=<numeric ID>               Process only a single host (the one with the given numeric ID)
+       COMMIT=<true/false> (default=true) If false, no change is made to hosts.
 
     Examples:
-      # foreman-rake interfaces:clean
+      # foreman-rake hosts:assign_ks_repo -- goes through all hosts, changing hosts that need changing.
+      # foreman-rake hosts:assign_ks_repo COMMIT=false HOST_ID=2398 -- evaluates only host id 2398 and does not actually make any change to it.
   END_DESC
 
   host_id = ENV["HOST_ID"]
-  noop = ENV["NOOP"] == "true"
+  noop = ENV["COMMIT"] == "false" || ENV["COMMIT"] == "False"
 
   task :assign_ks_repo => :environment do
     if host_id
