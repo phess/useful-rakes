@@ -27,7 +27,7 @@ namespace :katello do
                               :   RIGHT="Other nice CV:31.0"  -- will compare LEFT to version 31.0 of "Other nice CV"
                               :   RIGHT="other_nice_cv:31.0"  -- will compare LEFT to version 31.0 of "other_nice_cv"
                               :   RIGHT="67"  -- will compare LEFT to the latest version of Content View ID 67
-                              :   RIGHT="45:31.0"  -- will compare LEFT to version 31.0 of Content View ID 67
+                              :   RIGHT="67:31.0"  -- will compare LEFT to version 31.0 of Content View ID 67
                               :   <RIGHT is omitted>  -- will compare LEFT to the second-latest version of LEFT
 
 
