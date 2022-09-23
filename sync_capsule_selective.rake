@@ -102,7 +102,7 @@ namespace :katello do
       puts " **********"
     end
     #task = ForemanTasks.async_task(::Actions::Katello::CapsuleContent::Sync, capsule, options)
-    ForemanTasks.sync_task(Actions::Pulp::Orchestration::Repository::RefreshRepos, capsule, options)
+    ForemanTasks.sync_task(Actions::Pulp::Orchestration::Repository::RefreshRepos, capsule, options) if not capsule.pulp3_enabled?
     ForemanTasks.sync_task(Actions::Pulp3::Orchestration::Repository::RefreshRepos, capsule, options) if capsule.pulp3_enabled?
     task = ForemanTasks.async_task(::Actions::Katello::CapsuleContent::Sync, capsule, options)
     puts "  *** Capsule sync task is started with task ID #{task.id} ***"
